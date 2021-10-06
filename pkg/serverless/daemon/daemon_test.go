@@ -83,3 +83,29 @@ func TestFinishInvocationOnceStartAndEndAndTimeout(t *testing.T) {
 
 	assert.Equal(uint64(1), GetValueSyncOnce(&d.finishInvocationOnce))
 }
+
+func TestSetExecutionContextUppercase(t *testing.T) {
+	assert := assert.New(t)
+	d := StartDaemon("http://localhost:8124")
+	defer d.Stop()
+	testArn := "arn:aws:lambda:us-east-1:123456789012:function:MY-SUPER-function"
+	testRequestId := "8286a188-ba32-4475-8077-530cd35c09a9"
+	d.SetExecutionContext(testArn, testRequestId)
+	assert.Equal("arn:aws:lambda:us-east-1:123456789012:function:my-super-function", d.ExecutionContext.ARN)
+	assert.Equal(testRequestId, d.ExecutionContext.LastRequestID)
+	assert.Equal(true, d.ExecutionContext.Coldstart)
+	assert.Equal(testRequestId, d.ExecutionContext.ColdstartRequestID)
+}
+
+func TestSetExecutionContextNoColdstart(t *testing.T) {
+	assert := assert.New(t)
+	d := StartDaemon("http://localhost:8124")
+	defer d.Stop()
+	d.ExecutionContext.ColdstartRequestID = "coldstart-request-id"
+	testArn := "arn:aws:lambda:us-east-1:123456789012:function:MY-SUPER-function"
+	testRequestId := "8286a188-ba32-4475-8077-530cd35c09a9"
+	d.SetExecutionContext(testArn, testRequestId)
+	assert.Equal("arn:aws:lambda:us-east-1:123456789012:function:my-super-function", d.ExecutionContext.ARN)
+	assert.Equal(testRequestId, d.ExecutionContext.LastRequestID)
+	assert.Equal(false, d.ExecutionContext.Coldstart)
+}
