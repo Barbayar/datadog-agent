@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/tagger/collectors"
 	"github.com/DataDog/datadog-agent/pkg/tagger/telemetry"
 	"github.com/DataDog/datadog-agent/pkg/tagger/types"
+	"github.com/DataDog/datadog-agent/pkg/util/log"
 )
 
 // Subscriber allows processes to subscribe to entity events generated from a
@@ -46,6 +47,8 @@ func (s *Subscriber) Subscribe(cardinality collectors.TagCardinality, events []t
 		notify(ch, events, cardinality)
 	}
 
+	log.Infof("new subscriber: %v", ch)
+
 	return ch
 }
 
@@ -53,10 +56,17 @@ func (s *Subscriber) Subscribe(cardinality collectors.TagCardinality, events []t
 func (s *Subscriber) Unsubscribe(ch chan []types.EntityEvent) {
 	s.Lock()
 	defer s.Unlock()
-	defer telemetry.Subscribers.Dec()
 
-	delete(s.subscribers, ch)
-	close(ch)
+	_, ok := s.subscribers[ch]
+	if ok {
+		log.Infof("removed subscriber: %v", ch)
+		delete(s.subscribers, ch)
+		close(ch)
+		telemetry.Subscribers.Dec()
+	} else {
+		log.Infof("tried to remove subscriber, but not found: %v", ch)
+	}
+
 }
 
 // Notify sends a slice of EntityEvents to all registered subscribers at their

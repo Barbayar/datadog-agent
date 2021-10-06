@@ -17,6 +17,7 @@ import (
 	stdLog "log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/DataDog/datadog-agent/cmd/agent/api/agent"
 	"github.com/DataDog/datadog-agent/cmd/agent/api/check"
@@ -31,6 +33,7 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/config"
 	remoteconfig "github.com/DataDog/datadog-agent/pkg/config/remote/service"
 	pb "github.com/DataDog/datadog-agent/pkg/proto/pbgo"
+	"github.com/DataDog/datadog-agent/pkg/util/log"
 	gorilla "github.com/gorilla/mux"
 )
 
@@ -83,11 +86,35 @@ func StartServer(configService *remoteconfig.Service) error {
 	}
 
 	// gRPC server
+	grpcTime := os.Getenv("GRPC_TIME")
+	maxConnectionIdle := os.Getenv("GRPC_MAX_CONNECTION_IDLE")
+
+	kp := keepalive.ServerParameters{}
+
+	if grpcTime != "" {
+		t, err := time.ParseDuration(grpcTime)
+		if err == nil {
+			kp.Time = t
+		} else {
+			log.Errorf("error parsing GRPC_TIME: %s", err)
+		}
+	}
+
+	if maxConnectionIdle != "" {
+		t, err := time.ParseDuration(maxConnectionIdle)
+		if err == nil {
+			kp.MaxConnectionIdle = t
+		} else {
+			log.Errorf("error parsing GRPC_MAX_CONNECTION_IDLE: %s", err)
+		}
+	}
+
 	mux := http.NewServeMux()
 	opts := []grpc.ServerOption{
 		grpc.Creds(credentials.NewClientTLSFromCert(tlsCertPool, tlsAddr)),
 		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(grpcAuth)),
 		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(grpcAuth)),
+		grpc.KeepaliveParams(kp),
 	}
 
 	s := grpc.NewServer(opts...)

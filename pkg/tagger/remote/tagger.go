@@ -33,7 +33,7 @@ import (
 const (
 	defaultTimeout    = 5 * time.Minute
 	noTimeout         = 0 * time.Minute
-	streamRecvTimeout = 10 * time.Minute
+	streamRecvTimeout = 2 * time.Minute
 )
 
 var (
@@ -207,7 +207,10 @@ func (t *Tagger) Unsubscribe(ch chan []types.EntityEvent) {
 }
 
 func (t *Tagger) run() {
+	i := 0
 	for {
+		i++
+
 		select {
 		case <-t.health.C:
 		case <-t.telemetryTicker.C:
@@ -224,7 +227,7 @@ func (t *Tagger) run() {
 			return err
 		}, streamRecvTimeout)
 
-		if err != nil {
+		if err != nil || i%10 == 0 {
 			t.streamCancel()
 
 			telemetry.ClientStreamErrors.Inc()

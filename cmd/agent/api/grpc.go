@@ -148,11 +148,16 @@ func (s *serverSecure) TaggerStreamEntities(in *pb.StreamTagsRequest, out pb.Age
 			responseEvents = append(responseEvents, e)
 		}
 
+		log.Infof("got event for %v, will send out", eventCh)
+
 		err = grpc.DoWithTimeout(func() error {
 			return out.Send(&pb.StreamTagsResponse{
 				Events: responseEvents,
 			})
 		}, taggerStreamSendTimeout)
+
+		log.Infof("event for %v done, err: %s", eventCh, err)
+
 		if err != nil {
 			log.Warnf("error sending tagger event: %s", err)
 			telemetry.ServerStreamErrors.Inc()
