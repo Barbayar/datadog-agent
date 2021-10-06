@@ -227,13 +227,12 @@ func TestOpen(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			f.Close()
-			return nil
+			return f.Close()
 		}, func(event *sprobe.Event, r *rules.Rule) {
 			assert.Equal(t, "open", event.GetType(), "wrong event type")
 		})
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 
 		iour, err := iouring.New(1)
