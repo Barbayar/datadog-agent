@@ -183,6 +183,13 @@ require (
 	go.etcd.io/etcd/client/v2 v2.305.0
 	go.opentelemetry.io/collector v0.36.1-0.20211004155959-190f8fbb2b9a
 	go.opentelemetry.io/collector/model v0.36.1-0.20211004155959-190f8fbb2b9a
+	go.opentelemetry.io/otel v1.0.2-0.20211006140346-3d4ae8d0b75f // indirect
+	go.opentelemetry.io/otel/internal/metric v0.24.1-0.20211006140346-3d4ae8d0b75f // indirect
+	go.opentelemetry.io/otel/metric v0.24.1-0.20211006140346-3d4ae8d0b75f // indirect
+	go.opentelemetry.io/otel/sdk v1.0.2-0.20211006140346-3d4ae8d0b75f // indirect
+	go.opentelemetry.io/otel/sdk/export/metric v0.24.1-0.20211006140346-3d4ae8d0b75f // indirect
+	go.opentelemetry.io/otel/sdk/metric v0.24.1-0.20211006140346-3d4ae8d0b75f // indirect
+	go.opentelemetry.io/otel/trace v1.0.2-0.20211006140346-3d4ae8d0b75f // indirect
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.19.1
