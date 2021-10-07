@@ -73,6 +73,144 @@ func (z Trace) Msgsize() (s int) {
 }
 
 // MarshalMsg implements msgp.Marshaler
+func (z *TraceV6) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 2
+	// string "Spans"
+	o = append(o, 0x82, 0xa5, 0x53, 0x70, 0x61, 0x6e, 0x73)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Spans)))
+	for za0001 := range z.Spans {
+		if z.Spans[za0001] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z.Spans[za0001].MarshalMsg(o)
+			if err != nil {
+				err = msgp.WrapError(err, "Spans", za0001)
+				return
+			}
+		}
+	}
+	// string "Baggage"
+	o = append(o, 0xa7, 0x42, 0x61, 0x67, 0x67, 0x61, 0x67, 0x65)
+	o = msgp.AppendMapHeader(o, uint32(len(z.Baggage)))
+	for za0002, za0003 := range z.Baggage {
+		o = msgp.AppendString(o, za0002)
+		o = msgp.AppendString(o, za0003)
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *TraceV6) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Spans":
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Spans")
+				return
+			}
+			if cap(z.Spans) >= int(zb0002) {
+				z.Spans = (z.Spans)[:zb0002]
+			} else {
+				z.Spans = make([]*Span, zb0002)
+			}
+			for za0001 := range z.Spans {
+				if msgp.IsNil(bts) {
+					bts, err = msgp.ReadNilBytes(bts)
+					if err != nil {
+						return
+					}
+					z.Spans[za0001] = nil
+				} else {
+					if z.Spans[za0001] == nil {
+						z.Spans[za0001] = new(Span)
+					}
+					bts, err = z.Spans[za0001].UnmarshalMsg(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "Spans", za0001)
+						return
+					}
+				}
+			}
+		case "Baggage":
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Baggage")
+				return
+			}
+			if z.Baggage == nil {
+				z.Baggage = make(map[string]string, zb0003)
+			} else if len(z.Baggage) > 0 {
+				for key := range z.Baggage {
+					delete(z.Baggage, key)
+				}
+			}
+			for zb0003 > 0 {
+				var za0002 string
+				var za0003 string
+				zb0003--
+				za0002, bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "Baggage")
+					return
+				}
+				za0003, bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "Baggage", za0002)
+					return
+				}
+				z.Baggage[za0002] = za0003
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *TraceV6) Msgsize() (s int) {
+	s = 1 + 6 + msgp.ArrayHeaderSize
+	for za0001 := range z.Spans {
+		if z.Spans[za0001] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z.Spans[za0001].Msgsize()
+		}
+	}
+	s += 8 + msgp.MapHeaderSize
+	if z.Baggage != nil {
+		for za0002, za0003 := range z.Baggage {
+			_ = za0003
+			s += msgp.StringPrefixSize + len(za0002) + msgp.StringPrefixSize + len(za0003)
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
 func (z Traces) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
@@ -152,6 +290,210 @@ func (z Traces) Msgsize() (s int) {
 			} else {
 				s += z[zb0005][zb0006].Msgsize()
 			}
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *TracesPayload) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 2
+	// string "TracerTags"
+	o = append(o, 0x82, 0xaa, 0x54, 0x72, 0x61, 0x63, 0x65, 0x72, 0x54, 0x61, 0x67, 0x73)
+	o = msgp.AppendMapHeader(o, uint32(len(z.TracerTags)))
+	for za0001, za0002 := range z.TracerTags {
+		o = msgp.AppendString(o, za0001)
+		o = msgp.AppendString(o, za0002)
+	}
+	// string "Traces"
+	o = append(o, 0xa6, 0x54, 0x72, 0x61, 0x63, 0x65, 0x73)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Traces)))
+	for za0003 := range z.Traces {
+		if z.Traces[za0003] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z.Traces[za0003].MarshalMsg(o)
+			if err != nil {
+				err = msgp.WrapError(err, "Traces", za0003)
+				return
+			}
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *TracesPayload) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TracerTags":
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "TracerTags")
+				return
+			}
+			if z.TracerTags == nil {
+				z.TracerTags = make(map[string]string, zb0002)
+			} else if len(z.TracerTags) > 0 {
+				for key := range z.TracerTags {
+					delete(z.TracerTags, key)
+				}
+			}
+			for zb0002 > 0 {
+				var za0001 string
+				var za0002 string
+				zb0002--
+				za0001, bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "TracerTags")
+					return
+				}
+				za0002, bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "TracerTags", za0001)
+					return
+				}
+				z.TracerTags[za0001] = za0002
+			}
+		case "Traces":
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Traces")
+				return
+			}
+			if cap(z.Traces) >= int(zb0003) {
+				z.Traces = (z.Traces)[:zb0003]
+			} else {
+				z.Traces = make(TracesV6, zb0003)
+			}
+			for za0003 := range z.Traces {
+				if msgp.IsNil(bts) {
+					bts, err = msgp.ReadNilBytes(bts)
+					if err != nil {
+						return
+					}
+					z.Traces[za0003] = nil
+				} else {
+					if z.Traces[za0003] == nil {
+						z.Traces[za0003] = new(TraceV6)
+					}
+					bts, err = z.Traces[za0003].UnmarshalMsg(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "Traces", za0003)
+						return
+					}
+				}
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *TracesPayload) Msgsize() (s int) {
+	s = 1 + 11 + msgp.MapHeaderSize
+	if z.TracerTags != nil {
+		for za0001, za0002 := range z.TracerTags {
+			_ = za0002
+			s += msgp.StringPrefixSize + len(za0001) + msgp.StringPrefixSize + len(za0002)
+		}
+	}
+	s += 7 + msgp.ArrayHeaderSize
+	for za0003 := range z.Traces {
+		if z.Traces[za0003] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z.Traces[za0003].Msgsize()
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z TracesV6) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendArrayHeader(o, uint32(len(z)))
+	for za0001 := range z {
+		if z[za0001] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z[za0001].MarshalMsg(o)
+			if err != nil {
+				err = msgp.WrapError(err, za0001)
+				return
+			}
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *TracesV6) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(TracesV6, zb0002)
+	}
+	for zb0001 := range *z {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(TraceV6)
+			}
+			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
+			if err != nil {
+				err = msgp.WrapError(err, zb0001)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z TracesV6) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize
+	for zb0003 := range z {
+		if z[zb0003] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z[zb0003].Msgsize()
 		}
 	}
 	return

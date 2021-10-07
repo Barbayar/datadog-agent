@@ -9,4 +9,5 @@ message APITrace {
 	repeated Span spans = 2;
 	int64 startTime = 6;
 	int64 endTime = 7;
+	map<string, string> baggage = 8;
 }

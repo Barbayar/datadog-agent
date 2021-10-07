@@ -115,6 +115,7 @@ func TestInfoHandler(t *testing.T) {
 		"/v0.4/services",
 		"/v0.5/traces",
 		"/profiling/v1/input",
+		"/v0.6/traces",
 		"/v0.6/stats",
 		"/appsec/proxy/",
 		"/debugger/v1/input"
@@ -170,6 +171,7 @@ func TestInfoHandler(t *testing.T) {
 		"/v0.4/services",
 		"/v0.5/traces",
 		"/profiling/v1/input",
+		"/v0.6/traces",
 		"/v0.6/stats",
 		"/appsec/proxy/",
 		"/debugger/v1/input",

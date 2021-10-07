@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"expvar"
 	"fmt"
 	"io"
@@ -383,7 +384,7 @@ func (r *HTTPReceiver) tagStats(v Version, header http.Header) *info.TagStats {
 	})
 }
 
-func decodeTraces(v Version, req *http.Request) (pb.Traces, error) {
+func decodeTraces(v Version, req *http.Request) (pb.ITraces, error) {
 	switch v {
 	case v01:
 		var spans []pb.Span
@@ -400,6 +401,9 @@ func decodeTraces(v Version, req *http.Request) (pb.Traces, error) {
 		var traces pb.Traces
 		err := traces.UnmarshalMsgDictionary(buf.Bytes())
 		return traces, err
+	case v06:
+		var tracesPayload pb.TracesPayload
+		return tracesPayload.Traces, errors.New("NOT IMPLEMENTED")
 	default:
 		var traces pb.Traces
 		if err := decodeRequest(req, &traces); err != nil {
@@ -407,6 +411,11 @@ func decodeTraces(v Version, req *http.Request) (pb.Traces, error) {
 		}
 		return traces, nil
 	}
+}
+
+func decodeTracesPayload(v Version, req *http.Request) (pb.TracesPayload, error) {
+	var tracesPayload pb.TracesPayload
+	return tracesPayload, errors.New("NOT_IMPLEMENTED")
 }
 
 // replyOK replies to the given http.ReponseWriter w based on the endpoint version, with either status 200/OK
@@ -545,7 +554,7 @@ func (r *HTTPReceiver) handleTraces(v Version, w http.ResponseWriter, req *http.
 		metrics.Histogram("datadog.trace_agent.receiver.rate_response_bytes", float64(n), tags, 1)
 	}
 
-	atomic.AddInt64(&ts.TracesReceived, int64(len(traces)))
+	atomic.AddInt64(&ts.TracesReceived, int64(traces.Len()))
 	atomic.AddInt64(&ts.TracesBytes, req.Body.(*apiutil.LimitedReader).Count)
 	atomic.AddInt64(&ts.PayloadAccepted, 1)
 
@@ -610,7 +619,7 @@ type Payload struct {
 	ContainerTags string
 
 	// Traces contains all the traces received in the payload
-	Traces pb.Traces
+	Traces pb.ITraces
 
 	// ClientComputedTopLevel specifies that the client has already marked top-level
 	// spans.

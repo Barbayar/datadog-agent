@@ -10,4 +10,5 @@ message TracePayload {
         string env = 2;
         repeated APITrace traces = 3;
         repeated Span transactions = 4;
+        map<string, string> tracerTags = 5;
 }
