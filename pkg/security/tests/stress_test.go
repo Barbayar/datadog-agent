@@ -395,6 +395,9 @@ func BenchmarkERPCDentryResolutionPath(b *testing.B) {
 		inode = event.Open.File.Inode
 		pathID = event.Open.File.PathID
 	})
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	// create a new dentry resolver to avoid concurrent map access errors
 	resolver, err := probe.NewDentryResolver(test.probe)
@@ -461,6 +464,9 @@ func BenchmarkMapDentryResolutionSegment(b *testing.B) {
 		inode = event.Open.File.Inode
 		pathID = event.Open.File.PathID
 	})
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	// create a new dentry resolver to avoid concurrent map access errors
 	resolver, err := probe.NewDentryResolver(test.probe)
@@ -527,6 +533,9 @@ func BenchmarkMapDentryResolutionPath(b *testing.B) {
 		inode = event.Open.File.Inode
 		pathID = event.Open.File.PathID
 	})
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	// create a new dentry resolver to avoid concurrent map access errors
 	resolver, err := probe.NewDentryResolver(test.probe)

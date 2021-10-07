@@ -15,7 +15,6 @@ import (
 	"io"
 	"io/fs"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -47,8 +46,6 @@ import (
 )
 
 var (
-	eventChanLength     = 10000
-	handlerChanLength   = 20000
 	discarderChanLength = 10000
 	logger              seelog.LoggerInterface
 )
@@ -109,11 +106,10 @@ rules:
 `
 
 var (
-	disableERPCDentryResolution bool
-	testEnvironment             string
-	useReload                   bool
-	logLevelStr                 string
-	logPatterns                 stringSlice
+	testEnvironment string
+	useReload       bool
+	logLevelStr     string
+	logPatterns     stringSlice
 )
 
 const (
@@ -130,7 +126,6 @@ type testOpts struct {
 	reuseProbeHandler           bool
 	disableERPCDentryResolution bool
 	disableMapDentryResolution  bool
-	logPatterns                 []string
 }
 
 func (s *stringSlice) String() string {
@@ -160,7 +155,6 @@ type testModule struct {
 	module       *module.Module
 	probe        *sprobe.Probe
 	probeHandler *testProbeHandler
-	listener     net.Listener
 	discarders   chan *testDiscarder
 	cmdWrapper   cmdWrapper
 	ruleHandler  testRuleHandler
@@ -508,7 +502,7 @@ func (tm *testModule) reset() {
 DRAIN_DISCARDERS:
 	for {
 		select {
-		case _ = <-tm.discarders:
+		case <-tm.discarders:
 		default:
 			break DRAIN_DISCARDERS
 		}
@@ -553,6 +547,14 @@ func (tm *testModule) EventDiscarderFound(rs *rules.RuleSet, event eval.Event, f
 	default:
 		log.Tracef("Discarding discarder %+v", discarder)
 	}
+}
+
+func (tm *testModule) WaitSignal(tb testing.TB, action func() error, cb ruleHandler) error {
+	if err := tm.GetSignal(tb, action, cb); err != nil {
+		tb.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (tm *testModule) GetSignal(tb testing.TB, action func() error, cb ruleHandler) error {
@@ -708,12 +710,14 @@ func (tm *testModule) Create(filename string) (string, unsafe.Pointer, error) {
 	return testFile, testPtr, err
 }
 
+//nolint:unused
 type tracePipeLogger struct {
 	*TracePipe
 	stop       chan struct{}
 	executable string
 }
 
+//nolint:unused
 func (l *tracePipeLogger) handleEvent(event *TraceEvent) {
 	// for some reason, the event task is resolved to "<...>"
 	// so we check that event.PID is the ID of a task of the running process
@@ -725,6 +729,7 @@ func (l *tracePipeLogger) handleEvent(event *TraceEvent) {
 	}
 }
 
+//nolint:unused
 func (l *tracePipeLogger) Start() {
 	channelEvents, channelErrors := l.Channel()
 
@@ -745,6 +750,7 @@ func (l *tracePipeLogger) Start() {
 	}()
 }
 
+//nolint:unused
 func (l *tracePipeLogger) Stop() {
 	time.Sleep(time.Millisecond * 200)
 
@@ -752,6 +758,7 @@ func (l *tracePipeLogger) Stop() {
 	l.Close()
 }
 
+//nolint:unused
 func (tm *testModule) startTracing() (*tracePipeLogger, error) {
 	tracePipe, err := NewTracePipe()
 	if err != nil {
@@ -911,30 +918,6 @@ func applyUmask(fileMode int) int {
 		_ = unix.Umask(systemUmask)
 	}
 	return fileMode &^ systemUmask
-}
-
-func testStringFieldContains(t *testing.T, event *sprobe.Event, fieldPath string, expected string) {
-	t.Helper()
-
-	// check container path
-	value, err := event.GetFieldValue(fieldPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	switch value.(type) {
-	case string:
-		if !strings.Contains(value.(string), expected) {
-			t.Errorf("expected value `%s` for `%s` not found: %+v", expected, fieldPath, event)
-		}
-	case []string:
-		for _, v := range value.([]string) {
-			if strings.Contains(v, expected) {
-				return
-			}
-		}
-		t.Errorf("expected value `%s` for `%s` not found in for `%+v`: %+v", expected, fieldPath, value, event)
-	}
 }
 
 func (tm *testModule) flushChannels(duration time.Duration) {

@@ -21,8 +21,8 @@ import (
 	"gotest.tools/assert"
 )
 
-const TEST_BOOL_NAME = "selinuxuser_ping"
-const TEST_BOOL_NAME2 = "httpd_enable_cgi"
+const TestBoolName = "selinuxuser_ping"
+const TestBoolName2 = "httpd_enable_cgi"
 
 func TestSELinux(t *testing.T) {
 	ruleset := []*rules.RuleDefinition{
@@ -58,14 +58,14 @@ func TestSELinux(t *testing.T) {
 	}
 	defer test.Close()
 
-	savedBoolValue, err := getBoolValue(TEST_BOOL_NAME)
+	savedBoolValue, err := getBoolValue(TestBoolName)
 	if err != nil {
 		t.Errorf("failed to save bool state: %v", err)
 	}
-	defer setBoolValue(TEST_BOOL_NAME, savedBoolValue)
+	defer setBoolValue(TestBoolName, savedBoolValue)
 
 	t.Run("sel_disable", func(t *testing.T) {
-		err = test.GetSignal(t, func() error {
+		test.WaitSignal(t, func() error {
 			if err := rawSudoWrite("/sys/fs/selinux/disable", "0", false); err != nil {
 				t.Errorf("failed to write to selinuxfs: %v", err)
 			}
@@ -78,13 +78,10 @@ func TestSELinux(t *testing.T) {
 				t.Error(event.String())
 			}
 		})
-		if err != nil {
-			t.Error(err)
-		}
 	})
 
 	t.Run("setenforce", func(t *testing.T) {
-		err = test.GetSignal(t, func() error {
+		test.WaitSignal(t, func() error {
 			if cmd := exec.Command("sudo", "-n", "setenforce", "0"); cmd.Run() != nil {
 				t.Errorf("Failed to run setenforce")
 			}
@@ -99,14 +96,11 @@ func TestSELinux(t *testing.T) {
 				t.Error(event.String())
 			}
 		})
-		if err != nil {
-			t.Error(err)
-		}
 	})
 
 	t.Run("setsebool_true_value", func(t *testing.T) {
-		err = test.GetSignal(t, func() error {
-			if err := setBoolValue(TEST_BOOL_NAME, true); err != nil {
+		test.WaitSignal(t, func() error {
+			if err := setBoolValue(TestBoolName, true); err != nil {
 				t.Errorf("failed to run setsebool: %v", err)
 			}
 			return nil
@@ -114,21 +108,18 @@ func TestSELinux(t *testing.T) {
 			assertTriggeredRule(t, rule, "test_selinux_write_bool_true")
 			assert.Equal(t, "selinux", event.GetType(), "wrong event type")
 
-			assertFieldEqual(t, event, "selinux.bool.name", TEST_BOOL_NAME, "wrong bool name")
+			assertFieldEqual(t, event, "selinux.bool.name", TestBoolName, "wrong bool name")
 			assertFieldEqual(t, event, "selinux.bool.state", "on", "wrong bool value")
 
 			if !validateSELinuxSchema(t, event) {
 				t.Error(event.String())
 			}
 		})
-		if err != nil {
-			t.Error(err)
-		}
 	})
 
 	t.Run("setsebool_false_value", func(t *testing.T) {
-		err = test.GetSignal(t, func() error {
-			if err := setBoolValue(TEST_BOOL_NAME, false); err != nil {
+		test.WaitSignal(t, func() error {
+			if err := setBoolValue(TestBoolName, false); err != nil {
 				t.Errorf("failed to run setsebool: %v", err)
 			}
 			return nil
@@ -136,16 +127,13 @@ func TestSELinux(t *testing.T) {
 			assertTriggeredRule(t, rule, "test_selinux_write_bool_false")
 			assert.Equal(t, "selinux", event.GetType(), "wrong event type")
 
-			assertFieldEqual(t, event, "selinux.bool.name", TEST_BOOL_NAME, "wrong bool name")
+			assertFieldEqual(t, event, "selinux.bool.name", TestBoolName, "wrong bool name")
 			assertFieldEqual(t, event, "selinux.bool.state", "off", "wrong bool value")
 
 			if !validateSELinuxSchema(t, event) {
 				t.Error(event.String())
 			}
 		})
-		if err != nil {
-			t.Error(err)
-		}
 	})
 
 	t.Run("setsebool_error_value", func(t *testing.T) {
@@ -184,15 +172,15 @@ func TestSELinuxCommitBools(t *testing.T) {
 		t.Skipf("SELinux is not available, skipping tests")
 	}
 
-	savedBoolValue, err := getBoolValue(TEST_BOOL_NAME)
+	savedBoolValue, err := getBoolValue(TestBoolName)
 	if err != nil {
 		t.Errorf("failed to save bool state: %v", err)
 	}
-	defer setBoolValue(TEST_BOOL_NAME, savedBoolValue)
+	defer setBoolValue(TestBoolName, savedBoolValue)
 
 	t.Run("sel_commit_bools", func(t *testing.T) {
-		err = test.GetSignal(t, func() error {
-			if err := setBoolValue(TEST_BOOL_NAME, true); err != nil {
+		test.WaitSignal(t, func() error {
+			if err := setBoolValue(TestBoolName, true); err != nil {
 				t.Errorf("failed to run setsebool: %v", err)
 			}
 			return nil
@@ -206,9 +194,6 @@ func TestSELinuxCommitBools(t *testing.T) {
 				t.Error(event.String())
 			}
 		})
-		if err != nil {
-			t.Error(err)
-		}
 	})
 }
 
@@ -226,9 +211,8 @@ func rawSudoWrite(filePath, writeContent string, ignoreRunError bool) error {
 
 	if err := cmd.Run(); !ignoreRunError {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func getBoolValue(boolName string) (bool, error) {
