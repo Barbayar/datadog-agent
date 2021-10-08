@@ -42,7 +42,7 @@ func (t Traces) Len() int {
 }
 
 func (t Traces) Get(i int) ITrace {
-	return t[i]
+	return &t[i]
 }
 
 // TraceV6 TODO
