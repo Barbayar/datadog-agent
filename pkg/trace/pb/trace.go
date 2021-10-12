@@ -13,3 +13,15 @@ type Trace []*Span
 
 // Traces is a list of traces. This model matters as this is what we unpack from msgp.
 type Traces []Trace
+
+// TraceChunk is a collection of spans with the same trace ID and their baggage
+type TraceChunk struct {
+	Priority int32
+	Spans    []*Span
+}
+
+// TracerPayload is a collection of trace chunks and tracer tags
+type TracerPayload struct {
+	Tags   map[string]string
+	Chunks []*TraceChunk
+}

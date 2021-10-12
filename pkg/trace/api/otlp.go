@@ -235,13 +235,18 @@ func (o *OTLPReceiver) processRequest(protocol string, header http.Header, in *o
 		tags := tagstats.AsTags()
 		metrics.Count("datadog.trace_agent.otlp.spans", int64(len(rspans.InstrumentationLibrarySpans)), tags, 1)
 		metrics.Count("datadog.trace_agent.otlp.traces", int64(len(tracesByID)), tags, 1)
+		traceChunks := make([]*pb.TraceChunk, 0, len(tracesByID))
 		p := Payload{
 			Source:        tagstats,
 			ContainerTags: getContainerTags(fastHeaderGet(header, headerContainerID)),
-			Traces:        make(pb.Traces, 0, len(tracesByID)),
 		}
-		for _, trace := range tracesByID {
-			p.Traces = append(p.Traces, trace)
+		for _, spans := range tracesByID {
+			traceChunks = append(traceChunks, &pb.TraceChunk{
+				Spans: spans,
+			})
+		}
+		p.TracerPayload = &pb.TracerPayload{
+			Chunks: traceChunks,
 		}
 		o.out <- &p
 	}

@@ -115,12 +115,12 @@ func useFlushThreshold(n int) func() {
 // randomSampledSpans returns a set of spans sampled spans and events events.
 func randomSampledSpans(spans, events int) *SampledSpans {
 	realisticIDs := true
-	trace := testutil.GetTestTraces(1, spans, realisticIDs)[0]
+	traceChunk := testutil.GetTestTraceChunks(1, spans, realisticIDs)[0]
 	return &SampledSpans{
-		Traces:    []*pb.APITrace{traceutil.APITrace(trace)},
-		Events:    trace[:events],
-		Size:      trace.Msgsize() + pb.Trace(trace[:events]).Msgsize(),
-		SpanCount: int64(len(trace)),
+		Traces:    []*pb.APITrace{traceutil.APITrace(traceChunk)},
+		Events:    traceChunk.Spans[:events],
+		Size:      pb.Trace(traceChunk.Spans).Msgsize() + pb.Trace(traceChunk.Spans[:events]).Msgsize(),
+		SpanCount: int64(len(traceChunk.Spans)),
 	}
 }
 

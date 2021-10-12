@@ -174,7 +174,7 @@ func TestOTLPReceiver(t *testing.T) {
 			case p := <-out:
 				assert.Equal(t, "go", p.Source.Lang)
 				assert.Equal(t, "opentelemetry_grpc_v1", p.Source.EndpointVersion)
-				assert.Len(t, p.Traces, 1)
+				assert.Len(t, p.TracerPayload.Chunks, 1)
 				ps[i] = p
 			case <-timeout:
 				t.Fatal("timed out")

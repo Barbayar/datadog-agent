@@ -90,7 +90,13 @@ func TestProcess(t *testing.T) {
 			Duration: (500 * time.Millisecond).Nanoseconds(),
 		}
 		agnt.Process(&api.Payload{
-			Traces: pb.Traces{{span}},
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{
+					{
+						Spans: []*pb.Span{span},
+					},
+				},
+			},
 			Source: info.NewReceiverStats().GetTagStats(info.Tags{}),
 		})
 
@@ -129,14 +135,26 @@ func TestProcess(t *testing.T) {
 		assert := assert.New(t)
 
 		agnt.Process(&api.Payload{
-			Traces: pb.Traces{{spanValid}},
-			Source: want,
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{
+					{
+						Spans: []*pb.Span{spanValid},
+					},
+				},
+			},
+			Source: info.NewReceiverStats().GetTagStats(info.Tags{}),
 		})
 		assert.EqualValues(0, want.TracesFiltered)
 		assert.EqualValues(0, want.SpansFiltered)
 
 		agnt.Process(&api.Payload{
-			Traces: pb.Traces{{spanInvalid, spanInvalid}},
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{
+					{
+						Spans: []*pb.Span{spanInvalid, spanInvalid},
+					},
+				},
+			},
 			Source: want,
 		})
 		assert.EqualValues(1, want.TracesFiltered)
@@ -174,7 +192,21 @@ func TestProcess(t *testing.T) {
 		assert := assert.New(t)
 
 		agnt.Process(&api.Payload{
-			Traces: pb.Traces{{spanInvalid, spanInvalid}, {spanValid}},
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{
+					{
+						Spans: []*pb.Span{
+							spanInvalid,
+							spanInvalid,
+						},
+					},
+					{
+						Spans: []*pb.Span{
+							spanValid,
+						},
+					},
+				},
+			},
 			Source: want,
 		})
 		assert.EqualValues(1, want.TracesFiltered)
@@ -206,7 +238,15 @@ func TestProcess(t *testing.T) {
 		}
 
 		agnt.Process(&api.Payload{
-			Traces:        pb.Traces{{span}},
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{
+					{
+						Spans: []*pb.Span{
+							span,
+						},
+					},
+				},
+			},
 			Source:        info.NewReceiverStats().GetTagStats(info.Tags{}),
 			ContainerTags: "A:B,C",
 		})
@@ -253,7 +293,15 @@ func TestProcess(t *testing.T) {
 				sampler.SetSamplingPriority(span, key)
 			}
 			agnt.Process(&api.Payload{
-				Traces: pb.Traces{{span}},
+				TracerPayload: &pb.TracerPayload{
+					Chunks: []*pb.TraceChunk{
+						{
+							Spans: []*pb.Span{
+								span,
+							},
+						},
+					},
+				},
 				Source: want,
 			})
 		}
@@ -283,7 +331,15 @@ func TestProcess(t *testing.T) {
 			Duration: (500 * time.Millisecond).Nanoseconds(),
 		}
 		agnt.Process(&api.Payload{
-			Traces: pb.Traces{{span}},
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{
+					{
+						Spans: []*pb.Span{
+							span,
+						},
+					},
+				},
+			},
 			Source: info.NewReceiverStats().GetTagStats(info.Tags{}),
 		})
 
@@ -298,19 +354,25 @@ func TestProcess(t *testing.T) {
 		agnt := NewAgent(ctx, cfg)
 		defer cancel()
 
-		traces := pb.Traces{{{
-			Service:  "something &&<@# that should be a metric!",
-			TraceID:  1,
-			SpanID:   1,
-			Resource: "SELECT name FROM people WHERE age = 42 AND extra = 55",
-			Type:     "sql",
-			Start:    time.Now().Add(-time.Second).UnixNano(),
-			Duration: (500 * time.Millisecond).Nanoseconds(),
-			Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
-		}}}
+		tracerPayload := pb.TracerPayload{
+			Chunks: []*pb.TraceChunk{
+				{
+					Spans: []*pb.Span{{
+						Service:  "something &&<@# that should be a metric!",
+						TraceID:  1,
+						SpanID:   1,
+						Resource: "SELECT name FROM people WHERE age = 42 AND extra = 55",
+						Type:     "sql",
+						Start:    time.Now().Add(-time.Second).UnixNano(),
+						Duration: (500 * time.Millisecond).Nanoseconds(),
+						Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
+					}},
+				},
+			},
+		}
 		go agnt.Process(&api.Payload{
-			Traces: traces,
-			Source: agnt.Receiver.Stats.GetTagStats(info.Tags{}),
+			TracerPayload: &tracerPayload,
+			Source:        agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 		})
 		timeout := time.After(2 * time.Second)
 		var span *pb.Span
@@ -341,15 +403,21 @@ func TestProcess(t *testing.T) {
 			Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
 		}}
 		// we are sending 3 traces
-		traces := pb.Traces{trace, trace, trace}
+		tracerPayload := pb.TracerPayload{
+			Chunks: []*pb.TraceChunk{
+				{Spans: trace},
+				{Spans: trace},
+				{Spans: trace},
+			},
+		}
 		// setting writer.MaxPayloadSize to the size of 1 trace (+1 byte)
 		defer func(oldSize int) { writer.MaxPayloadSize = oldSize }(writer.MaxPayloadSize)
 		writer.MaxPayloadSize = trace.Msgsize() + 1
 		// and expecting it to result in 3 payloads
 		expectedPayloads := 3
 		go agnt.Process(&api.Payload{
-			Traces: traces,
-			Source: agnt.Receiver.Stats.GetTagStats(info.Tags{}),
+			TracerPayload: &tracerPayload,
+			Source:        agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 		})
 
 		var gotCount int
@@ -364,7 +432,7 @@ func TestProcess(t *testing.T) {
 			}
 		}
 		// without missing a trace
-		assert.Equal(t, gotCount, len(traces))
+		assert.Equal(t, gotCount, len(tracerPayload.Chunks))
 	})
 }
 
@@ -374,20 +442,26 @@ func TestClientComputedTopLevel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	agnt := NewAgent(ctx, cfg)
 	defer cancel()
-	traces := pb.Traces{{{
-		Service:  "something &&<@# that should be a metric!",
-		TraceID:  1,
-		SpanID:   1,
-		Resource: "SELECT name FROM people WHERE age = 42 AND extra = 55",
-		Type:     "sql",
-		Start:    time.Now().Add(-time.Second).UnixNano(),
-		Duration: (500 * time.Millisecond).Nanoseconds(),
-		Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
-	}}}
+	tracerPayload := pb.TracerPayload{
+		Chunks: []*pb.TraceChunk{
+			{
+				Spans: []*pb.Span{{
+					Service:  "something &&<@# that should be a metric!",
+					TraceID:  1,
+					SpanID:   1,
+					Resource: "SELECT name FROM people WHERE age = 42 AND extra = 55",
+					Type:     "sql",
+					Start:    time.Now().Add(-time.Second).UnixNano(),
+					Duration: (500 * time.Millisecond).Nanoseconds(),
+					Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
+				}},
+			},
+		},
+	}
 
 	t.Run("onNotTop", func(t *testing.T) {
 		go agnt.Process(&api.Payload{
-			Traces:                 traces,
+			TracerPayload:          &tracerPayload,
 			Source:                 agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 			ClientComputedTopLevel: true,
 		})
@@ -404,7 +478,7 @@ func TestClientComputedTopLevel(t *testing.T) {
 
 	t.Run("off", func(t *testing.T) {
 		go agnt.Process(&api.Payload{
-			Traces:                 traces,
+			TracerPayload:          &tracerPayload,
 			Source:                 agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 			ClientComputedTopLevel: false,
 		})
@@ -420,9 +494,9 @@ func TestClientComputedTopLevel(t *testing.T) {
 	})
 
 	t.Run("onTop", func(t *testing.T) {
-		traces[0][0].Metrics["_dd.top_level"] = 1
+		tracerPayload.Chunks[0].Spans[0].Metrics["_dd.top_level"] = 1
 		go agnt.Process(&api.Payload{
-			Traces:                 traces,
+			TracerPayload:          &tracerPayload,
 			Source:                 agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 			ClientComputedTopLevel: true,
 		})
@@ -522,20 +596,26 @@ func TestClientComputedStats(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	agnt := NewAgent(ctx, cfg)
 	defer cancel()
-	traces := pb.Traces{{{
-		Service:  "something &&<@# that should be a metric!",
-		TraceID:  1,
-		SpanID:   1,
-		Resource: "SELECT name FROM people WHERE age = 42 AND extra = 55",
-		Type:     "sql",
-		Start:    time.Now().Add(-time.Second).UnixNano(),
-		Duration: (500 * time.Millisecond).Nanoseconds(),
-		Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
-	}}}
+	tracerPayload := pb.TracerPayload{
+		Chunks: []*pb.TraceChunk{
+			{
+				Spans: []*pb.Span{{
+					Service:  "something &&<@# that should be a metric!",
+					TraceID:  1,
+					SpanID:   1,
+					Resource: "SELECT name FROM people WHERE age = 42 AND extra = 55",
+					Type:     "sql",
+					Start:    time.Now().Add(-time.Second).UnixNano(),
+					Duration: (500 * time.Millisecond).Nanoseconds(),
+					Metrics:  map[string]float64{sampler.KeySamplingPriority: 2},
+				}},
+			},
+		},
+	}
 
 	t.Run("on", func(t *testing.T) {
 		agnt.Process(&api.Payload{
-			Traces:              traces,
+			TracerPayload:       &tracerPayload,
 			Source:              agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 			ClientComputedStats: true,
 		})
@@ -544,7 +624,7 @@ func TestClientComputedStats(t *testing.T) {
 
 	t.Run("off", func(t *testing.T) {
 		agnt.Process(&api.Payload{
-			Traces:              traces,
+			TracerPayload:       &tracerPayload,
 			Source:              agnt.Receiver.Stats.GetTagStats(info.Tags{}),
 			ClientComputedStats: false,
 		})
@@ -849,7 +929,9 @@ func runTraceProcessingBenchmark(b *testing.B, c *config.AgentConfig) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		ta.Process(&api.Payload{
-			Traces: pb.Traces{testutil.RandomTrace(10, 8)},
+			TracerPayload: &pb.TracerPayload{
+				Chunks: []*pb.TraceChunk{testutil.RandomTraceChunk(10, 8)},
+			},
 			Source: info.NewReceiverStats().GetTagStats(info.Tags{}),
 		})
 	}

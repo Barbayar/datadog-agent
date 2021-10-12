@@ -86,6 +86,14 @@ func RandomTrace(maxLevels, maxSpans int) pb.Trace {
 	return t
 }
 
+// RandomTraceChunk generates a random trace chunk with a depth from 1 to
+// maxLevels of spans. Each level has at most maxSpans items.
+func RandomTraceChunk(maxLevels, maxSpans int) *pb.TraceChunk {
+	return &pb.TraceChunk{
+		Spans: RandomTrace(maxLevels, maxLevels),
+	}
+}
+
 // GetTestTraces returns a []Trace that is composed by ``traceN`` number
 // of traces, each one composed by ``size`` number of spans.
 func GetTestTraces(traceN, size int, realisticIDs bool) pb.Traces {
@@ -114,4 +122,17 @@ func GetTestTraces(traceN, size int, realisticIDs bool) pb.Traces {
 		traces = append(traces, trace)
 	}
 	return traces
+}
+
+// GetTestTraceChunks returns a []TraceChunk that is composed by ``traceN`` number
+// of traces, each one composed by ``size`` number of spans.
+func GetTestTraceChunks(traceN, size int, realisticIDs bool) []*pb.TraceChunk {
+	traces := GetTestTraces(traceN, size, realisticIDs)
+	traceChunks := make([]*pb.TraceChunk, 0, len(traces))
+	for _, trace := range traces {
+		traceChunks = append(traceChunks, &pb.TraceChunk{
+			Spans: trace,
+		})
+	}
+	return traceChunks
 }
