@@ -6,11 +6,10 @@
 package sampler
 
 import (
-	"encoding/binary"
 	"math"
+	"strconv"
 	"sync"
-
-	"github.com/twmb/murmur3"
+	"time"
 )
 
 // DynamicConfig contains configuration items which may change
@@ -32,7 +31,7 @@ func NewDynamicConfig(env string) *DynamicConfig {
 type State struct {
 	Rates      map[string]float64
 	Mechanisms map[string]uint32
-	Version    uint64
+	Version    string
 }
 
 // RateByService stores the sampling rate per service. It is thread-safe, so
@@ -40,10 +39,11 @@ type State struct {
 type RateByService struct {
 	defaultEnv string // env. to use for service defaults
 
-	mu       sync.RWMutex // guards rates
-	rates    map[string]rm
-	version  uint64
-	rateHash float64
+	mu            sync.RWMutex // guards rates
+	rates         *map[string]rm
+	incomingRates *map[string]rm
+	version       string
+	rateHash      float64
 }
 
 // SetAll the sampling rate for all services. If a service/env is not
@@ -52,35 +52,46 @@ func (rbs *RateByService) SetAll(rates map[ServiceSignature]rm) {
 	rbs.mu.Lock()
 	defer rbs.mu.Unlock()
 
+	changed := false
+	if rbs.incomingRates == nil {
+		m := make(map[string]rm, len(rates))
+		rbs.incomingRates = &m
+	}
+	for k := range *rbs.incomingRates {
+		delete(*rbs.incomingRates, k)
+	}
 	if rbs.rates == nil {
-		rbs.rates = make(map[string]rm, len(rates))
+		changed = true
 	}
-	for k := range rbs.rates {
-		delete(rbs.rates, k)
-	}
-	var buf [8]byte
-	rateHash := murmur3.New64()
 	for k, v := range rates {
-		binary.BigEndian.PutUint64(buf[:], math.Float64bits(v.r))
-		rateHash.Write(buf[:])
-		if v.r < 0 {
-			v.r = 0
+		ks := k.String()
+		if !changed {
+			r, ok := (*rbs.rates)[ks]
+			if !ok || r != v {
+				changed = true
+			}
 		}
-		if v.r > 1 {
-			v.r = 1
-		}
-		rbs.rates[k.String()] = v
+		v.r = math.Min(math.Max(v.r, 0), 1)
+		(*rbs.incomingRates)[ks] = v
 		if k.Env == rbs.defaultEnv {
 			// if this is the default env, then this is also the
 			// service's default rate unbound to any env.
-			rbs.rates[ServiceSignature{Name: k.Name}.String()] = v
+			(*rbs.incomingRates)[ServiceSignature{Name: k.Name}.String()] = v
 		}
 	}
-	rbs.version = rateHash.Sum64()
+	if len(*rbs.rates) != len(*rbs.incomingRates) {
+		changed = true
+	}
+	if changed {
+		tmp := rbs.rates
+		rbs.rates = rbs.incomingRates
+		rbs.incomingRates = tmp // we will reuse this map
+		rbs.version = strconv.FormatInt(time.Now().Unix(), 16)
+	}
 }
 
 // GetNewState returns the current state if the given version is different from the local version.
-func (rbs *RateByService) GetNewState(version uint64) State {
+func (rbs *RateByService) GetNewState(version string) State {
 	rbs.mu.RLock()
 	defer rbs.mu.RUnlock()
 
@@ -90,13 +101,13 @@ func (rbs *RateByService) GetNewState(version uint64) State {
 		}
 	}
 	ret := State{
-		Rates:      make(map[string]float64, len(rbs.rates)),
-		Mechanisms: make(map[string]uint32, len(rbs.rates)),
+		Rates:      make(map[string]float64, len(*rbs.rates)),
+		Mechanisms: make(map[string]uint32, len(*rbs.rates)),
 		Version:    rbs.version,
 	}
-	for k, v := range rbs.rates {
+	for k, v := range *rbs.rates {
 		ret.Rates[k] = v.r
-		if v.m != 1 {
+		if v.m != 0 {
 			ret.Mechanisms[k] = v.m
 		}
 	}

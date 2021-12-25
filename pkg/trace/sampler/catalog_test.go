@@ -158,9 +158,9 @@ func TestServiceKeyCatalogRatesByService(t *testing.T) {
 	}
 	const totalRate = 0.2
 
-	remoteRates := map[Signature]float64{
-		sig2: 0.5555,
-		sig3: 0.19,
+	remoteRates := map[Signature]rm{
+		sig2: {0.5555, 2},
+		sig3: {0.19, 2},
 	}
 
 	rateByService := cat.ratesByService(rates, remoteRates, totalRate)

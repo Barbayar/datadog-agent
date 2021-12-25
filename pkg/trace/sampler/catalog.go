@@ -87,7 +87,6 @@ func (cat *serviceKeyCatalog) ratesByService(localRates map[Signature]float64, r
 		} else if rate, ok := localRates[sig]; ok {
 			rbs[key] = rm{
 				r: rate,
-				m: 1,
 			}
 		} else {
 			cat.ll.Remove(el)
@@ -96,7 +95,6 @@ func (cat *serviceKeyCatalog) ratesByService(localRates map[Signature]float64, r
 	}
 	rbs[ServiceSignature{}] = rm{
 		r: defaultRate,
-		m: 1,
 	}
 	return rbs
 }

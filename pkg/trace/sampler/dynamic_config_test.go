@@ -19,14 +19,14 @@ func TestNewDynamicConfig(t *testing.T) {
 	dc := NewDynamicConfig("none")
 	assert.NotNil(dc)
 
-	rates := map[ServiceSignature]float64{
-		{"myservice", "myenv"}: 0.5,
+	rates := map[ServiceSignature]rm{
+		{"myservice", "myenv"}: {0.5, 0},
 	}
 
 	// Not doing a complete test of the different components of dynamic config,
 	// but still assessing it can do the bare minimum once initialized.
 	dc.RateByService.SetAll(rates)
-	rbs := dc.RateByService.GetAll()
+	rbs := dc.RateByService.GetNewState("").Rates
 	assert.Equal(map[string]float64{"service:myservice,env:myenv": 0.5}, rbs)
 }
 

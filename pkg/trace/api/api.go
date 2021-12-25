@@ -455,11 +455,8 @@ func (r *HTTPReceiver) replyOK(req *http.Request, v Version, w http.ResponseWrit
 	case v01, v02, v03:
 		return httpOK(w)
 	default:
-		rateVersion, err := strconv.ParseUint(req.Header.Get(headerRatesPayloadVersion), 10, 64)
-		if err != nil {
-			rateVersion = 0
-		}
-		return httpRateByService(rateVersion, w, r.dynConf)
+		ratesVersion := req.Header.Get(headerRatesPayloadVersion)
+		return httpRateByService(ratesVersion, w, r.dynConf)
 	}
 }
 
@@ -719,7 +716,7 @@ func (r *HTTPReceiver) loop() {
 				lastLog = now
 
 				// Also publish rates by service (they are updated by receiver)
-				rates := r.dynConf.RateByService.GetAll()
+				rates := r.dynConf.RateByService.GetNewState("").Rates
 				info.UpdateRateByService(rates)
 			}
 		}

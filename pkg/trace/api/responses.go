@@ -11,7 +11,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strconv"
 	"sync/atomic"
 
 	"github.com/DataDog/datadog-agent/pkg/trace/api/apiutil"
@@ -92,21 +91,32 @@ func (wc *writeCounter) N() uint64 { return atomic.LoadUint64(&wc.n) }
 // httpRateByService outputs, as a JSON, the recommended sampling rates for all services.
 // It returns the number of bytes written and a boolean specifying whether the write was
 // successful.
-func httpRateByService(version uint64, w http.ResponseWriter, dynConf *sampler.DynamicConfig) (n uint64, ok bool) {
+func httpRateByService(ratesVersion string, w http.ResponseWriter, dynConf *sampler.DynamicConfig) (n uint64, ok bool) {
+	wc := newWriteCounter(w)
+	var err error
+	defer func() {
+		n, ok = wc.N(), err == nil
+		if err != nil {
+			tags := []string{"error:response-error"}
+			metrics.Count(receiverErrorKey, 1, tags, 1)
+		}
+	}()
+
+	currentState := dynConf.RateByService.GetNewState(ratesVersion) // this is thread-safe
 	w.Header().Set("Content-Type", "application/json")
-	currentState := dynConf.RateByService.GetNewState(version) // this is thread-safe
-	w.Header().Set(headerRatesPayloadVersion, strconv.FormatUint(currentState.Version, 10))
+	w.Header().Set(headerRatesPayloadVersion, currentState.Version)
+
+	if ratesVersion != "" && ratesVersion == currentState.Version {
+		// rates weren't changed
+		_, err = wc.Write([]byte("{}"))
+		return
+	}
+
 	response := traceResponse{
 		Rates:      currentState.Rates,
 		Mechanisms: currentState.Mechanisms,
 	}
-	wc := newWriteCounter(w)
-	ok = true
 	encoder := json.NewEncoder(wc)
-	if err := encoder.Encode(response); err != nil {
-		tags := []string{"error:response-error"}
-		metrics.Count(receiverErrorKey, 1, tags, 1)
-		ok = false
-	}
-	return wc.N(), ok
+	err = encoder.Encode(response)
+	return
 }
