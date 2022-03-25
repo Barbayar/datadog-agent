@@ -8,8 +8,8 @@ import (
 
 // APMSamplingConfig is an apm sampling config
 type APMSamplingConfig struct {
-	Configs map[string]Config
-	Rates   []pb.APMSampling
+	Versions map[string]uint64
+	Files    map[string]pb.APMSampling
 }
 
 // APMSamplingUpdate is an apm sampling config update
@@ -31,21 +31,19 @@ func (c *apmSamplingConfigs) update(configFiles map[string]configFiles) (*APMSam
 	}
 	update := &APMSamplingUpdate{
 		Config: &APMSamplingConfig{
-			Configs: make(map[string]Config, len(configFiles)),
+			Versions: make(map[string]uint64, len(configFiles)),
+			Files:    make(map[string]pb.APMSampling, len(configFiles)),
 		},
 	}
-	for configID, files := range configFiles {
-		update.Config.Configs[configID] = Config{
-			ID:      configID,
-			Version: files.version(),
-		}
+	for _, files := range configFiles {
 		for _, file := range files {
 			var mpconfig pb.APMSampling
 			_, err := mpconfig.UnmarshalMsg(file.raw)
 			if err != nil {
 				return nil, fmt.Errorf("could not parse apm sampling config: %v", err)
 			}
-			update.Config.Rates = append(update.Config.Rates, mpconfig)
+			update.Config.Versions[file.pathMeta.ConfigID] = file.version
+			update.Config.Files[file.pathMeta.ConfigID] = mpconfig
 		}
 		c.config = update.Config
 	}
@@ -53,11 +51,11 @@ func (c *apmSamplingConfigs) update(configFiles map[string]configFiles) (*APMSam
 }
 
 func (c *apmSamplingConfigs) shouldUpdate(configFiles map[string]configFiles) bool {
-	if c.config == nil || len(c.config.Configs) != len(configFiles) {
+	if c.config == nil || len(c.config.Versions) != len(configFiles) {
 		return true
 	}
 	for configID, files := range configFiles {
-		if config, ok := c.config.Configs[configID]; !ok || config.Version < files.version() {
+		if version, ok := c.config.Versions[configID]; !ok || version < files.version() {
 			return true
 		}
 	}

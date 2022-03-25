@@ -53,6 +53,11 @@ func NewErrorsSampler(conf *config.AgentConfig) *ErrorsSampler {
 	return &ErrorsSampler{ScoreSampler{Sampler: s, samplingRateKey: errorsRateKey, disabled: conf.ErrorTPS == 0}}
 }
 
+// UpdateTargetTPS TODO
+func (s *ScoreSampler) UpdateTargetTPS(targetTPS float64) {
+	s.targetTPS.Store(targetTPS)
+}
+
 // Sample counts an incoming trace and tells if it is a sample which has to be kept
 func (s *ScoreSampler) Sample(now time.Time, trace pb.Trace, root *pb.Span, env string) bool {
 	if s.disabled {

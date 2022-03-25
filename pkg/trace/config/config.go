@@ -394,8 +394,7 @@ type RemoteClient interface {
 
 // SamplingUpdate ...
 type SamplingUpdate struct {
-	Configs map[string]uint64
-	Rates   []pb.APMSampling
+	Files map[string]pb.APMSampling
 }
 
 // Tag represents a key/value pair.

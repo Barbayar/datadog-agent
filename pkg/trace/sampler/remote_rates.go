@@ -36,9 +36,6 @@ type RemoteRates struct {
 	mu                 sync.RWMutex // protects concurrent access to samplers and tpsTargets
 	tpsVersion         uint64       // version of the loaded tpsTargets
 	duplicateTargetTPS uint64       // count of duplicate received targetTPS
-
-	client  config.RemoteClient
-	stopped chan struct{}
 }
 
 type remoteSampler struct {
@@ -46,30 +43,21 @@ type remoteSampler struct {
 	target pb.TargetTPS
 }
 
-func newRemoteRates(client config.RemoteClient, maxTPS float64, agentVersion string) *RemoteRates {
-	if client == nil {
-		return nil
-	}
+func newRemoteRates(maxTPS float64, agentVersion string) *RemoteRates {
 	return &RemoteRates{
-		client:    client,
 		maxSigTPS: maxTPS,
 		samplers:  make(map[Signature]*remoteSampler),
-		stopped:   make(chan struct{}),
 	}
 }
 
 func (r *RemoteRates) onUpdate(update config.SamplingUpdate) {
 	// TODO: We don't have a version per product, yet. But, we will have it in the next version.
 	// In the meantime we will just use a version of one of the config files.
-	var version uint64
-	for _, v := range update.Configs {
-		version = v
-		break
-	}
-
+	var version uint64 = 0
 	log.Debugf("fetched config version %d from remote config management", version)
+
 	tpsTargets := make(map[Signature]pb.TargetTPS, len(r.tpsTargets))
-	for _, rates := range update.Rates {
+	for _, rates := range update.Files {
 		for _, targetTPS := range rates.TargetTPS {
 			if targetTPS.Value > r.maxSigTPS {
 				targetTPS.Value = r.maxSigTPS
@@ -125,22 +113,6 @@ func (r *RemoteRates) updateTPS(tpsTargets map[Signature]pb.TargetTPS) {
 		delete(r.samplers, sig)
 	}
 	r.mu.Unlock()
-}
-
-// Start runs and adjust rates per signature following remote TPS targets
-func (r *RemoteRates) Start() {
-	go func() {
-		for update := range r.client.SamplingUpdates() {
-			r.onUpdate(update)
-		}
-		close(r.stopped)
-	}()
-}
-
-// Stop stops RemoteRates main loop
-func (r *RemoteRates) Stop() {
-	r.client.Close()
-	<-r.stopped
 }
 
 func (r *RemoteRates) getSampler(sig Signature) (*remoteSampler, bool) {

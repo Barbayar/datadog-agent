@@ -124,6 +124,26 @@ func (a *Agent) Run() {
 		go a.work()
 	}
 
+	go func() {
+		if a.conf.RemoteSamplingClient == nil {
+			return
+		}
+		for update := range a.conf.RemoteSamplingClient.SamplingUpdates() {
+			a.PrioritySampler.UpdateRemoteRates(update)
+			for configID, config := range update.Files {
+				if configID != "user_rates" {
+					continue
+				}
+				if config.ErrorTPS != nil {
+					a.ErrorsSampler.UpdateTargetTPS(*config.ErrorTPS)
+				}
+				if config.RareSampler != nil {
+				}
+			}
+		}
+		// close(a.remoteDone)
+	}()
+
 	a.loop()
 }
 
@@ -160,6 +180,9 @@ func (a *Agent) work() {
 
 func (a *Agent) loop() {
 	for {
+		a.conf.RemoteSamplingClient.Close()
+		// <- a.remoteDone
+
 		select {
 		case <-a.ctx.Done():
 			log.Info("Exiting...")
@@ -452,9 +475,8 @@ func (a *Agent) samplePriorityTrace(now time.Time, pt traceutil.ProcessedTrace) 
 	if traceContainsError(pt.TraceChunk.Spans) {
 		return a.ErrorsSampler.Sample(now, pt.TraceChunk.Spans, pt.Root, pt.TracerEnv)
 	}
-	if a.conf.DisableRareSampler {
-		return false
-	}
+
+	// TODO
 	return a.RareSampler.Sample(now, pt.TraceChunk, pt.TracerEnv)
 }
 

@@ -58,7 +58,7 @@ func NewPrioritySampler(conf *config.AgentConfig, dynConf *DynamicConfig) *Prior
 	s := &PrioritySampler{
 		agentEnv:      conf.DefaultEnv,
 		localRates:    newSampler(conf.ExtraSampleRate, conf.TargetTPS, []string{"sampler:priority"}),
-		remoteRates:   newRemoteRates(conf.RemoteSamplingClient, conf.MaxRemoteTPS, conf.AgentVersion),
+		remoteRates:   newRemoteRates(conf.MaxRemoteTPS, conf.AgentVersion),
 		rateByService: &dynConf.RateByService,
 		catalog:       newServiceLookup(conf.MaxCatalogEntries),
 		exit:          make(chan struct{}),
@@ -66,11 +66,13 @@ func NewPrioritySampler(conf *config.AgentConfig, dynConf *DynamicConfig) *Prior
 	return s
 }
 
+// UpdateRemoteRates TODO
+func (s *PrioritySampler) UpdateRemoteRates(update config.SamplingUpdate) {
+	s.remoteRates.onUpdate(update)
+}
+
 // Start runs and block on the Sampler main loop
 func (s *PrioritySampler) Start() {
-	if s.remoteRates != nil {
-		s.remoteRates.Start()
-	}
 	go func() {
 		statsTicker := time.NewTicker(10 * time.Second)
 		defer statsTicker.Stop()
@@ -100,9 +102,6 @@ func (s *PrioritySampler) updateRates() {
 
 // Stop stops the sampler main loop
 func (s *PrioritySampler) Stop() {
-	if s.remoteRates != nil {
-		s.remoteRates.Stop()
-	}
 	close(s.exit)
 }
 

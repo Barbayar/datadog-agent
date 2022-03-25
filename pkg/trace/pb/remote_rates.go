@@ -24,5 +24,7 @@ type TargetTPS struct {
 
 // APMSampling is the list of target tps
 type APMSampling struct {
-	TargetTPS []TargetTPS `msgpack:"0"`
+	TargetTPS   []TargetTPS `msgpack:"0"`
+	ErrorTPS    *float64    `msgpack:"1"`
+	RareSampler *bool       `msgpack:"2"`
 }
