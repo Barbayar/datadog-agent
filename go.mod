@@ -162,7 +162,7 @@ require (
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 	github.com/shuLhan/go-bindata v4.0.0+incompatible
-	github.com/spf13/afero v1.6.0
+	github.com/spf13/afero v1.9.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
