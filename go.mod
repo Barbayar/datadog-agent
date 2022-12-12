@@ -184,7 +184,7 @@ require (
 	go.opentelemetry.io/collector v0.36.0
 	go.opentelemetry.io/collector/model v0.36.0
 	go.uber.org/automaxprocs v1.4.0
-	go.uber.org/multierr v1.6.0
+	go.uber.org/multierr v1.9.0
 	go.uber.org/zap v1.19.1
 	go4.org/intern v0.0.0-20210108033219-3eb7198706b2
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
@@ -200,7 +200,7 @@ require (
 	gopkg.in/DataDog/dd-trace-go.v1 v1.33.0
 	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.1
 	gopkg.in/zorkian/go-datadog-api.v2 v2.30.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.21.2
